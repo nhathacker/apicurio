@@ -1,0 +1,133 @@
+<div class="detail-title">
+    <div class="detail-label">
+        <span class="fa fa-fw fa-code"></span>
+        <span>{{ definitionName() }}</span>
+    </div>
+    <div class="detail-actions">
+        <div class="dropdown">
+            <button class="btn btn-link dropdown-toggle" type="button" id="dropdownKebab" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                <span class="fa fa-ellipsis-v"></span>
+            </button>
+            <ul class="dropdown-menu " aria-labelledby="dropdownKebab">
+                <li>
+                    <a href="#" onclick="return false" (click)="collapseAllSections()">
+                        <span class="fa fa-compress"></span>
+                        <span>Collapse All Sections</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="return false" (click)="expandAllSections()">
+                        <span class="fa fa-expand"></span>
+                        <span>Expand All Sections</span>
+                    </a>
+                </li>
+                <li class="divider"></li>
+                <li>
+                    <a href="#" onclick="return false" (click)="rename()">
+                        <span class="fa fa-pencil-square-o"></span>
+                        <span>Rename Data Type</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="return false" (click)="clone()">
+                        <span class="fa fa-clone"></span>
+                        <span>Clone Data Type</span>
+                    </a>
+                </li>
+                <li class="divider"></li>
+                <li>
+                    <a href="#" onclick="return false" (click)="delete()">
+                        <span class="pficon pficon-delete"></span>
+                        <span>Delete Data Type</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="detail-tabs">
+    <ul class="nav nav-tabs nav-tabs-pf">
+        <li [class.active]="isDesignMode()" [class.disabled]="canSaveSource()"><a (click)="enableDesignMode()">Design</a></li>
+        <li [class.active]="isSourceMode()"><a (click)="enableSourceMode()">Source</a></li>
+    </ul>
+</div>
+
+<!-- Source Mode -->
+<div class="detail-actionbar" *ngIf="isSourceMode()">
+    <button class="btn btn-default btn-xs" [disabled]="!canFormatSource()" (click)="formatSource()"><span class="fa fa-fw fa-indent"></span> <span>Format</span></button>
+    <button class="btn btn-default btn-xs" [disabled]="!canRevertSource()" (click)="revertSource()"><span class="fa fa-fw fa-undo"></span> <span>Revert</span></button>
+    <button class="btn btn-primary btn-xs" [disabled]="!canSaveSource()" (click)="saveSource()"><span class="pficon pficon-save"></span> <span>Save</span></button>
+    <button class="btn btn-default btn-xs" [disabled]="!canToggleSourceFormat()" (click)="toggleSourceFormat()">
+        <span class="fa fa-fw fa-code"></span>
+        <span *ngIf="isSourceFormatYaml()">As JSON</span>
+        <span *ngIf="isSourceFormatJson()">As YAML</span>
+    </button>
+</div>
+<div class="detail-content" style="position: relative" *ngIf="isSourceMode()">
+    <code-editor #sourceEditor
+                 [(text)]="source"
+                 [theme]="sourceEditorTheme()"
+                 [mode]="sourceEditorMode()"
+                 [debounceTime]="250"
+                 [editorStyle]="{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, 'margin-top': '1px' }"></code-editor>
+</div>
+
+<!-- Design Mode -->
+<div class="detail-content" *ngIf="isDesignMode()">
+    <div class="api-definition-detail">
+        <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active">
+
+                <!-- Info about the Definition -->
+                <definition-info-section [definition]="definition"></definition-info-section>
+
+                <!-- Properties -->
+                <section type="properties" label="PROPERTIES"
+                         contextHelp="Use this section to define the properties that make up this data type."
+                         [counterItems]="properties()"
+                         [collaborationNodePath]="propertiesNodePath()"
+                         [validationModels]="properties()">
+                    <span actions>
+                        <icon-button (onClick)="openAddSchemaPropertyEditor()" [pullRight]="true" type="add"
+                                     [title]="'Add a property to the schema.'"></icon-button>
+                        <icon-button (onClick)="deleteAllSchemaProperties()" [disabled]="!hasProperties()" [pullRight]="true" type="delete"
+                                     [title]="'Delete all properties from the schema.'"></icon-button>
+                    </span>
+                    <div body>
+                        <!-- Warning when no properties exist -->
+                        <signpost *ngIf="!hasProperties()">
+                            <span>No schema properties have been defined.</span>
+                            <a (click)="openAddSchemaPropertyEditor()">Add a property</a>
+                        </signpost>
+
+                        <!-- The list of schema properties -->
+                        <div class="container-fluid path-parameters typed-item-list">
+                            <property-row *ngFor="let property of properties()" [item]="property"
+                                          (onDelete)="deleteProperty(property)"
+                                          (onRename)="openRenamePropertyDialog(property)"
+                                          (onDescriptionChange)="changePropertyDescription(property, $event)"
+                                          (onTypeChange)="changePropertyType(property, $event)"></property-row>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Definition Example -->
+                <definition-example-section [definition]="definition"></definition-example-section>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<clone-definition-dialog #cloneDefinitionDialog (onClone)="clone($event)"></clone-definition-dialog>
+<rename-entity-dialog #renameDefinitionDialog
+                      type="Data Type"
+                      title="Rename Data Type"
+                      warning="Renaming a Data Type will also update any references to the type elsewhere in the API (e.g. responses and request bodies)."
+                      validationPattern="[a-zA-Z0-9\.\-_]+"
+                      (onRename)="rename($event)"></rename-entity-dialog>
+<rename-entity-dialog #renamePropertyDialog
+                      type="Property"
+                      title="Rename Property"
+                      validationPattern="[a-zA-Z0-9\.\-_]+"
+                      (onRename)="renameProperty($event)"></rename-entity-dialog>
